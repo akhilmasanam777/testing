@@ -1,0 +1,271 @@
+.appLayout {
+  display: flex;
+}
+
+/* Auth / Login  */
+
+.auth-wrapper {
+  @apply flex min-h-screen items-center justify-center bg-gray-2 dark:bg-[#020D1A];
+}
+
+.auth-card {
+  @apply w-full max-w-[420px] rounded-xl bg-white p-8 shadow-1 dark:bg-gray-dark;
+}
+
+.auth-logo {
+  @apply mb-6 flex justify-center;
+}
+
+.auth-title {
+  @apply mb-6 text-center text-xl font-bold text-dark dark:text-white;
+}
+
+.auth-input {
+  @apply mb-4;
+}
+
+.auth-options {
+  @apply mb-6 flex items-center justify-between gap-2 py-2 font-medium;
+}
+
+.auth-forgot {
+  @apply transition-colors hover:text-primary dark:text-white dark:hover:text-primary;
+}
+
+.auth-btn {
+  @apply flex w-full items-center justify-center gap-2 rounded-lg bg-primary p-4 font-medium text-white transition hover:bg-opacity-90;
+}
+
+.auth-loader {
+  @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent;
+}
+
+
+
+/* Sidebar fixed width */
+.sidebar {
+  width: 290px;
+  flex-shrink: 0;
+}
+
+/* Main content */
+.mainContent {
+  flex: 1;
+  min-width: 0;
+}
+
+
+.header {
+  @apply sticky top-0 z-30 flex items-center justify-between border-b border-stroke bg-white px-4 py-5 shadow-1 
+  /* dark:border-stroke-dark dark:bg-gray-dark  */
+  md:px-5 2xl:px-10;
+}
+
+.menuBtn {
+  @apply rounded-lg border px-1.5 py-1 dark:border-stroke-dark dark:bg-[#020D1A] hover:dark:bg-[#FFFFFF1A] lg:hidden;
+}
+
+.logoLink {
+  @apply ml-2 max-[430px]:hidden min-[375px]:ml-4;
+}
+
+.titleContainer {
+  @apply max-xl:hidden;
+}
+
+.title {
+  @apply mb-0.5 text-heading-5 font-bold text-dark dark:text-white;
+}
+
+.subtitle {
+  /* @apply font-medium; */
+  @apply font-medium text-gray-600 dark:text-gray-400;
+}
+
+.rightSection {
+  @apply flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4;
+}
+
+.searchWrapper {
+  @apply relative w-full max-w-[300px];
+}
+
+.searchInput {
+  @apply flex w-full items-center gap-3.5 rounded-full border bg-gray-2 py-3 pl-[53px] pr-5 outline-none transition-colors focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:hover:text-dark-6 dark:focus-visible:border-primary;
+}
+
+.searchIcon {
+  @apply pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5;
+}
+
+.userContainer {
+  @apply shrink-0;
+}
+
+
+/*  Sidebar  */
+.sidebar {
+  width: 290px;
+  min-width: 290px;
+  overflow: hidden;
+  border-right: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  transition: transform 0.3s ease;
+}
+
+.dark {
+  border-color: #1f2937;
+  background-color: #111827;
+}
+
+.dark .sidebar {
+  border-color: #1f2937;
+  background-color: #111827;
+}
+
+/* ===== Layout ===== */
+.sidebar-mobile {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+}
+
+.sidebar-desktop {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+/* ===== Open / Close ===== */
+.sidebar-open {
+  transform: translateX(0);
+}
+
+.sidebar-close {
+  transform: translateX(-100%);
+}
+
+/* ===== Overlay ===== */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* ===== Container ===== */
+.sidebar-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 40px 7px 40px 25px;
+}
+
+/* ===== Logo ===== */
+.sidebar-logo {
+  position: relative;
+  padding-right: 18px;
+}
+
+.logo-link {
+  display: block;
+  padding: 10px 0;
+}
+
+.close-btn {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* ===== Navigation ===== */
+.sidebar-nav {
+  flex: 1;
+  margin-top: 24px;
+  padding-right: 12px;
+  overflow-y: auto;
+}
+
+/* ===== Section ===== */
+.nav-section {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* ===== Menu ===== */
+.menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.menu-list li {
+  margin-bottom: 8px;
+}
+
+/* ===== Menu Item ===== */
+.menu-items {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.sidebar .menu-items:hover {
+  background-color: #f3f4f6;
+}
+
+.dark .sidebar .menu-items:hover {
+  background-color: #1f2937;
+}
+
+.menu-icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* ===== Submenu ===== */
+.submenu {
+  margin-left: 36px;
+  padding-top: 8px;
+  padding-bottom: 15px;
+}
+
+.submenu li {
+  margin-bottom: 6px;
+}
+
+/* ===== Scroll ===== */
+.custom-scrollbar {
+  overflow-y: auto;
+}
+
+/* ===== Chevron ===== */
+.chevron {
+  margin-left: auto;
+  transform: rotate(180deg);
+  transition: transform 0.2s;
+}
+
+.chevron-open {
+  transform: rotate(0deg);
+}

@@ -1,0 +1,1137 @@
+/* TAILWIND CORE */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* TAILWIND CORE - GENERATED FOR #00A885 */
+/* 
+:root{
+  --fill-primary: #00A885;
+  --button-primary: #22c55e;
+  --text-primary: #22c55e;
+} */
+
+
+:root{
+  --fill-primary: #00A885;
+  --button-primary: #00A885;
+  --text-primary: #00A885;
+}
+ /* for charts */
+/* :root{
+ --chart-color-1:#00A885;
+ --chart-color-2: #4ade80;
+  --chart-color-3: #86efac;
+  --chart-color-4: #bbf7d0;
+}  */
+
+:root{
+ --chart-color-1: #00A885;
+ --chart-color-2: #2ec4a2; 
+ --chart-color-3: #63dbbe; 
+ --chart-color-4: #a8f0df; 
+}
+
+/* BASE STYLES */
+@layer base {
+  body {
+    @apply bg-gray-2 text-dark-5 dark:bg-[#020D1A] dark:text-dark-6;
+    font-family: "Satoshi", sans-serif;
+    
+    text-transform: capitalize;
+  }
+}
+
+
+/*  UTILITIES */
+@layer utilities {
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .custom-scrollbar {
+    @apply overflow-auto;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply size-2;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-neutral-200/40 dark:bg-stroke-dark;
+  }
+}
+
+
+/* MAP CONTROLS */
+.map-btn .jvm-zoom-btn {
+  @apply flex h-7.5 w-7.5 items-center justify-center rounded border border-stroke bg-white px-0 pb-0.5 pt-0 text-2xl leading-none text-dark-5 hover:border-primary hover:bg-primary hover:text-white dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6 dark:hover:border-primary dark:hover:bg-primary dark:hover:text-white;
+}
+
+.mapOne .jvm-zoom-btn {
+  @apply !bottom-0 !left-auto !top-auto;
+}
+
+.mapOne .jvm-zoom-btn.jvm-zoomin {
+  @apply !right-10;
+}
+
+.mapOne .jvm-zoom-btn.jvm-zoomout {
+  @apply !right-0;
+}
+
+
+/*  AUTH / LOGIN */
+.auth-wrapper {
+  @apply bg-gray-2;
+}
+
+.dark .auth-wrapper {
+  @apply bg-[#020D1A];
+}
+
+.auth-card {
+  @apply w-full max-w-[420px] rounded-xl bg-white p-8 shadow-1 dark:bg-gray-dark;
+}
+
+.auth-logo {
+  @apply mb-6 flex justify-center;
+}
+
+.auth-title {
+  @apply mb-6 text-center text-xl font-bold text-dark dark:text-white;
+}
+
+.auth-input {
+  @apply mb-4;
+}
+
+.auth-options {
+  @apply mb-6 flex items-center justify-between gap-2 py-2 font-medium;
+}
+
+.auth-forgot {
+  @apply transition-colors hover:text-primary dark:text-white dark:hover:text-primary;
+}
+
+.auth-btn {
+  @apply flex w-full items-center justify-center gap-2 rounded-lg bg-primary p-4 font-medium text-white transition hover:bg-opacity-90;
+}
+
+.auth-loader {
+  @apply inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent;
+}
+
+
+/*  HEADER */
+@layer components {
+
+  .app-header {
+  @apply sticky top-0 z-30 flex items-center justify-between 
+         border-b border-stroke bg-white 
+         py-5 shadow-1 
+         dark:border-stroke-dark dark:bg-gray-dark 
+         pr-4 pl-2 md:pr-5 md:pl-2 2xl:pr-10 2xl:pl-2;
+}
+
+
+  .menu-btn {
+    @apply rounded-lg border px-1.5 py-1 dark:border-stroke-dark dark:bg-[#020D1A] hover:dark:bg-[#FFFFFF1A] ;
+  }
+
+  .header-title {
+    @apply mb-0.5 text-xl font-bold text-dark dark:text-white;
+  }
+
+.header-log {
+  @apply  text-sm  md:text-sm lg:text-base xl:text-lg 2xl:text-lg pl-2;
+}
+
+
+  .header-subtitle {
+    @apply font-medium;
+  }
+
+  .header-right {
+    @apply flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4;
+  }
+
+  .search-wrapper {
+    @apply relative w-full max-w-[300px];
+  }
+
+  .search-input {
+    @apply flex w-full items-center gap-3.5 rounded-full border bg-gray-2 py-3 pl-[53px] pr-5 outline-none transition-colors focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:hover:text-dark-6 dark:focus-visible:border-primary;
+  }
+
+  .search-icon {
+    @apply pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5;
+  }
+
+}
+
+
+/* SIDEBAR */
+@layer components {
+
+  .app-sidebar {
+    @apply max-w-[290px] overflow-hidden border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-dark;
+    width: 290px;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
+  }
+
+  .app-sidebar-desktop {
+    @apply sticky top-0 h-screen;
+  }
+
+  .app-sidebar-mobile {
+    @apply fixed bottom-0 top-0 z-50;
+  }
+
+  .app-sidebar-close {
+    transform: translateX(-100%);
+  }
+
+  .app-sidebar-open {
+    transform: translateX(0);
+  }
+
+  .app-sidebar-overlay {
+    @apply fixed inset-0 z-40 bg-black/50 transition-opacity duration-300;
+  }
+
+  .app-sidebar-inner {
+    @apply flex h-full flex-col py-10 pl-[25px] pr-[7px];
+  }
+
+  .app-sidebar-logo {
+    @apply relative pr-4.5 text-right ;
+  }
+
+  .app-sidebar-logo-text{
+    @apply text-2xl font-bold text-dark dark:text-white pt-2 mr-17;
+  }
+
+  .app-sidebar-scroll {
+    @apply custom-scrollbar flex-1 overflow-y-auto pr-3 ;
+  }
+
+  .app-sidebar-section-title {
+    @apply mb-5 text-right text-sm font-medium text-dark-4 dark:text-dark-6;
+  }
+
+  .app-sidebar-menu {
+    @apply space-y-2;
+  }
+
+  .app-sidebar-submenu {
+    @apply ml-9 space-y-1.5 pb-[15px] pt-2;
+  }
+
+}
+
+
+/* EXECUTIVE DASHBOARD */
+@layer components {
+
+  /* TYPOGRAPHY */
+  .text-page-title {
+    @apply text-[20px] font-bold leading-tight tracking-[-0.02em] text-dark dark:text-white;
+  }
+
+  .text-section-title {
+    @apply text-[20px] font-semibold leading-snug tracking-[-0.01em] text-dark dark:text-white;
+  }
+
+  .text-card-title {
+    @apply text-base font-semibold leading-normal text-dark dark:text-white;
+  }
+
+  .text-label {
+    @apply text-sm font-medium leading-relaxed text-dark dark:text-white;
+  }
+
+  .text-body {
+    @apply text-sm font-normal leading-relaxed text-dark-5 dark:text-dark-6;
+  }
+
+  .text-caption {
+    @apply text-[12px] font-normal text-gray-500 dark:text-gray-400;
+  }
+
+  .text-stat {
+    @apply text-[18px] font-semibold leading-none text-dark dark:text-white;
+  }
+
+  .text-stat-label {
+    @apply text-[11px] font-normal tracking-[0.03em] uppercase text-gray-500 dark:text-gray-400;
+  }
+
+  /* CARD */
+  .Card-div {
+    @apply rounded-[10px] bg-white p-5 shadow-1 dark:bg-gray-dark;
+  }
+
+  .Executive-dashboard-card-header {
+    @apply flex items-center gap-3 mb-4;
+  }
+
+  .Executive-dashboard-card-title {
+    @apply text-card-title;
+  }
+
+  .Executive-dashboard-card-value {
+    @apply mb-4;
+  }
+
+  /* DASHBOARD */
+  .dashboard-container {
+    @apply p-6;
+  }
+
+  .dashboard-title {
+    @apply text-page-title mb-6;
+  }
+
+  .dashboard-grid {
+    @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-3;
+  }
+
+  /* STATS */
+  .stats-grid {
+    @apply grid text-center gap-4;
+  }
+
+  .stats-grid-3 {
+    @apply grid-cols-3;
+  }
+
+  .stats-grid-4 {
+    @apply grid-cols-4;
+  }
+
+  .stats-item {
+    @apply flex flex-col items-center gap-1.5;
+  }
+
+  .stats-item svg {
+    @apply w-6 h-6;
+  }
+
+  .stats-value {
+    @apply text-[18px] font-semibold text-dark dark:text-white;
+  }
+
+  .stats-label {
+    @apply text-[16px] font-medium text-gray-600 dark:text-gray-600 dark:text-white;
+  }
+
+  /* HEADER */
+  .all-pages-header {
+    @apply flex items-center justify-between w-full border-b border-gray-300 pb-2 mb-4;
+  }
+
+  .dashboard-links {
+    @apply flex items-center gap-6 text-[14px] font-semibold text-blue-500 ml-auto;
+  }
+
+  .dashboard-links a,
+  .dashboard-links button {
+    @apply px-2;
+  }
+
+  /* .dashboard-title-light {
+    @apply text-[18px] font-semibold text-gray-600;
+  } */
+
+  .dashboard-title-light {
+    @apply text-[18px] font-semibold text-gray-600 lowercase capitalize;
+  }
+
+}
+
+
+/* DATE PICKER */
+.datepicker-input {
+  @apply w-full rounded-[7px] border-[1.5px] border-stroke bg-transparent px-5 py-3 font-normal outline-none transition focus:border-primary active:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary;
+}
+
+.datepicker-label {
+  @apply mb-2 block text-sm font-medium text-gray-700 dark:text-white;
+}
+
+.datepicker-wrapper {
+  @apply relative cursor-pointer;
+}
+
+.datepicker-icon {
+  @apply pointer-events-none absolute inset-0 left-auto right-5 flex items-center;
+}
+
+
+/* TABLE + PAGE LAYOUT */
+@layer components {
+
+  .page-container {
+    @apply p-6;
+  }
+
+  /* .all-pages-header {
+    @apply flex items-center justify-between mb-4;
+  } */
+
+  .dashboard-links {
+    @apply flex gap-2;
+  }
+
+  .btn-download {
+    @apply px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700;
+  }
+
+  .card-container {
+    @apply rounded-[10px] border border-stroke bg-white p-4 shadow-1 dark:border-dark-3 dark:bg-gray-dark dark:shadow-card sm:p-7.5;
+  }
+
+  .table-wrapper {
+    @apply overflow-auto;
+  }
+
+  .table-main {
+    @apply min-w-max table-auto;
+  }
+
+  /* .table-main td {
+  @apply text-base; 
+} */
+
+  .table-header-row {
+    @apply border-none bg-[#F7F9FC] dark:bg-dark-2;
+  }
+
+  /* .table-head {
+    @apply py-4 text-base text-dark dark:text-white;
+  } */
+  .table-head {
+    @apply py-4 text-base font-semibold text-dark dark:text-white;
+    /* ⬅️ increased */
+  }
+
+
+  /* .table-row {
+    @apply cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-3;
+  } */
+
+  .table-row {
+    @apply cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-3;
+  }
+
+  .table-subrow {
+    @apply hover:bg-gray-50 dark:hover:bg-dark-3;
+  }
+
+  .table-cell-right {
+    @apply text-right;
+  }
+
+  .table-total-row {
+    @apply font-bold bg-[#F7F9FC] dark:bg-dark-2 dark:text-white;
+  }
+}
+
+
+/*  EXPORT BUTTON */
+.btn-primary-export {
+  @apply inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-opacity-90;
+}
+
+
+/*  TASK DASHBOARD BUTTONS */
+@layer components {
+
+  .btn-primary {
+    @apply px-4 py-2 bg-primary text-white rounded hover:bg-primary;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600;
+  }
+
+  .btn-disabled {
+    @apply px-4 py-2 bg-gray-500 text-white rounded opacity-50;
+  }
+}
+
+
+/* FORM / MODAL / INPUT */
+@layer components {
+
+  .input-box {
+    @apply w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white;
+  }
+
+  .modal-overlay {
+    @apply fixed inset-0 bg-black/30 flex items-center justify-center z-50;
+  }
+
+  .modal-box {
+    @apply bg-white w-[700px] max-w-[90%] rounded-lg shadow-lg p-8 space-y-6 max-h-[90vh] overflow-y-auto dark:bg-gray-dark;
+  }
+
+  .btn-group {
+    @apply flex justify-end gap-3 mt-4;
+  }
+
+  .icon-btn {
+    @apply text-gray-500 hover:text-primary transition;
+  }
+}
+
+
+/* .card-custom {
+  border-radius: 12px;
+  background: white; 
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: 0.3s;
+} */
+
+.card-custom:hover {
+  transform: translateY(-5px);
+}
+
+.card-label {
+  font-size: 16px;
+  color: #555;
+}
+
+.card-value {
+  font-size: 28px;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+
+/*GIS */
+
+/*  Root wrapper  */
+.gis-root {
+  position: relative;
+  width: 100%;
+  min-height: 600px;
+}
+
+/*  Tab bar ─ */
+.my-tabs {
+  display: flex;
+  border-bottom: 2px solid #ccc;
+  margin-bottom: 0;
+}
+
+.my-tab-button {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: none;
+  background: #eee;
+  font-weight: bold;
+  border-right: 1px solid #ccc;
+  transition: background 0.15s;
+}
+
+.my-tab-button:hover {
+  background: #e0e0e0;
+}
+
+.my-tab-button.active {
+  background: #fff;
+  border-bottom: 2px solid #fff;
+}
+
+/*  Map wrapper & canvas  */
+.map-wrapper {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 130px);
+  min-height: 500px;
+}
+
+.map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/*  Color-bar legend (top-right)  */
+.color-bar-legend {
+  position: absolute;
+  top: 12px;
+  right: 50px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  z-index: 1 !important;
+  min-width: 160px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.color-bar {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #ffffff, #006400);
+  margin-bottom: 4px;
+  width: 160px;
+}
+
+.label-bar {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #555;
+}
+
+/*  Task name label (top-center)  */
+.tasknamecls {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+
+/* .tasknamelabel {
+  background: #a855f7;         
+  color: #fff;
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+} */
+
+/*  Region name label ─ */
+.regionnamecls {
+  position: absolute;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+
+/* .regionlabel {
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  padding: 4px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+} */
+
+/*  GIS layer panel (left side) ─ */
+/* .gispanel {
+  position: absolute;
+  top: 60px;
+  left: 10px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 6px;
+  min-width: 120px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+} */
+
+/*  Side menu dock (left) ─ */
+#menuDockRow {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#sideMenuContainer,
+#tasksideMenuContainer,
+#taskwisesideMenuContainer {
+  /* Populated dynamically by legacy JS */
+}
+
+/*  Zoom info (bottom-right)  */
+/* .info-box {
+  position: absolute;
+  bottom: 30px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+} */
+
+/* ─
+   SLD View
+   ─ */
+
+/* Ring filter controls */
+.sld-controls {
+  padding: 10px;
+  background: #f0f0f0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ring-button {
+  padding: 6px 12px;
+  background: #ddd;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.ring-button:hover {
+  background: #c8c8c8;
+}
+
+.ring-button.active {
+  background: #3399cc;
+  color: #fff;
+}
+
+/* Network canvas wrapper */
+#networkView {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  border: 1px solid #ccc;
+  background: #fff;
+}
+
+/* Bottom overlay bar */
+#bottomBar {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 20;
+}
+
+#pathLengthDisplay,
+#buttonsBox,
+#legendBox {
+  pointer-events: auto;
+}
+
+/* Path length box */
+#pathLengthDisplay {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  display: none;
+  /* shown via React state */
+}
+
+/* Export buttons */
+#buttonsBox button {
+  margin-left: 8px;
+  padding: 6px 12px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#buttonsBox button:hover {
+  background: #f0f0f0;
+}
+
+/* Legend box */
+#legendBox {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 14px;
+  border-radius: 6px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Tooltip */
+#tooltip {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 12px;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+  display: none;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 300px;
+  white-space: pre-wrap;
+  border-radius: 4px;
+}
+
+
+.my-tabs {
+  display: flex;
+  border-bottom: 2px solid #ccc;
+}
+
+.my-tab-button {
+  padding: 10px 20px;
+  background: #eee;
+  border: none;
+  cursor: pointer;
+}
+
+.my-tab-button.active {
+  background: #fff;
+}
+
+.my-tab-panel {
+  display: none;
+}
+
+.my-tab-panel.active {
+  display: block;
+}
+
+#networkView {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #ccc;
+}
+
+.blocker {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 99998;
+}
+
+.loadingDiv {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  z-index: 99999;
+}
+
+.file-style{
+  background-color: rgba(0, 168, 133, 0.1); 
+  color: rgb(0, 168, 133); 
+}
+
+
+/* .file-style{
+  background-color: rgba(63, 217, 127, 0.1);
+  color: rgb(63, 217, 127);
+
+} */
+
+
+/* =========================
+   TIMELINE PAGE STYLES
+========================= */
+@layer components {
+
+  /* HEADER */
+  .timeline-header {
+    @apply flex flex-wrap items-center gap-6 mb-4;
+  }
+
+  .timeline-filter {
+    @apply flex items-center gap-1.5 cursor-pointer text-sm;
+  }
+
+  .timeline-search {
+    @apply rounded-md border border-stroke bg-white px-3 py-1.5 text-sm 
+           focus:border-primary focus:outline-none 
+           dark:border-dark-3 dark:bg-dark-2 dark:text-white;
+  }
+
+  /* TABLE */
+  .timeline-table-wrapper {
+    @apply rounded-lg border border-stroke overflow-x-auto;
+  }
+
+  .timeline-th {
+    @apply text-xs font-bold text-gray-700 dark:text-white whitespace-nowrap;
+  }
+
+  .timeline-th-sortable {
+    @apply cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-dark-3;
+  }
+
+  .timeline-td {
+    @apply align-top py-2.5 text-xs;
+  }
+
+  .timeline-row {
+    @apply hover:bg-gray-50 dark:hover:bg-dark-2 transition-colors;
+  }
+
+  .timeline-loading {
+    @apply text-center py-10 text-gray-400 text-sm;
+  }
+
+  /* ACTION BUTTONS */
+  .action-btn {
+    @apply text-white text-xs px-2 py-1 rounded;
+  }
+
+  .action-btn-blue {
+    @apply bg-blue-600;
+  }
+
+  /* PAGINATION */
+  .pagination-wrapper {
+    @apply flex items-center justify-between mt-4 flex-wrap gap-2;
+  }
+
+  .pagination-text {
+    @apply text-sm text-gray-600 dark:text-gray-400;
+  }
+
+  .page-btn {
+    @apply px-3 py-1 border rounded-md text-xs;
+  }
+
+  .page-btn-active {
+    @apply bg-primary text-white;
+  }
+
+  /* MODAL */
+  .timeline-modal-body {
+    @apply p-4;
+  }
+
+  .timeline-img {
+    @apply w-24 h-24 object-cover border rounded;
+  }
+
+  /* FORM */
+  .form-label {
+    @apply text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block;
+  }
+
+  .form-input {
+    @apply w-full border border-gray-300 rounded-md px-3 py-2 text-sm 
+           focus:border-primary focus:outline-none 
+           dark:bg-dark-2 dark:border-dark-3 dark:text-white;
+  }
+}
+
+
+/* =========================
+   TIMELINE OTHER TABS
+========================= */
+
+/* MAP TAB */
+.map-container {
+  @apply w-full rounded-lg bg-gray-200 dark:bg-dark-3 flex items-center justify-center text-gray-400 text-sm;
+}
+
+/* MEASUREMENT TAB */
+.measurement-toolbar {
+  @apply flex items-center gap-3 mb-4;
+}
+
+.measurement-select {
+  @apply border px-2 py-1 rounded;
+}
+
+.measurement-table-wrapper {
+  @apply overflow-x-auto;
+}
+
+.measurement-table {
+  @apply w-full text-[11px] border border-black;
+}
+
+.measurement-th {
+  @apply border border-black p-1 text-center font-bold bg-gray-100;
+}
+
+.measurement-td {
+  @apply border border-black p-1 text-center;
+}
+
+/* PROGRESS TAB */
+.progress-container {
+  @apply p-4;
+}
+
+.progress-toolbar {
+  @apply flex gap-3 mb-5;
+}
+
+.progress-grid {
+  @apply grid grid-cols-2 gap-5;
+}
+
+.progress-label {
+  @apply text-sm font-medium mb-1 block;
+}
+
+.progress-input {
+  @apply w-full border border-gray-300 rounded px-3 py-2 text-sm;
+}
+
+.progress-save {
+  @apply flex justify-center mt-6;
+}
+
+/* DOWNLOAD TAB */
+.download-toolbar {
+  @apply flex justify-between mb-3;
+}
+
+.download-search {
+  @apply border px-2 py-1 rounded;
+}
+
+.download-btn {
+  @apply bg-primary text-white px-3 py-1 rounded;
+}
+
+.download-table-wrapper {
+  @apply card-container overflow-x-auto;
+}
+
+.download-cell {
+  @apply text-xs whitespace-nowrap;
+}
+
+.download-action-btn {
+  @apply bg-blue-600 text-white px-3 py-1 rounded;
+}
+
+/* CERTIFICATE TAB */
+.certificate-container {
+  @apply p-4;
+}
+
+.certificate-row {
+  @apply flex items-center gap-4;
+}
+
+.certificate-text {
+  @apply mt-3 text-sm text-gray-500;
+}
+
+/* COMMON */
+.center-text {
+  @apply text-center;
+}
+
+.right-text {
+  @apply text-right;
+}
+
+/* DMS */
+.dms-icon-box {
+  @apply flex h-[60px] w-[60px] items-center justify-center rounded-xl;
+background-color: rgba(0, 168, 133, 0.1); 
+  color: rgb(0, 168, 133);
+}
+
+.dms-icon-box svg {
+  @apply h-[46px] w-[46px];
+}
+
+.radio-primary {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #9ca3af; /* gray before checked */
+  border-radius: 50%;
+  background-color: #fff;
+  display: inline-grid;
+  place-content: center;
+  vertical-align: middle;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 120ms ease-in-out;
+}
+
+.radio-primary::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: transform 120ms ease-in-out;
+ background-color: #00A885;
+}
+
+.radio-primary:checked {
+background-color: #00A885;
+}
+
+.radio-primary:checked::before {
+  transform: scale(1);
+}
+
+
+
+
+
+
+
+/* need to be deleated added just for testing perfomance thesting dashboard. */
+
+/* Staggered fade-in for child cards */
+@keyframes slide-fade-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-stagger > * {
+  opacity: 0;
+  animation: slide-fade-in 0.5s ease-out forwards;
+}
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 80ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 160ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 240ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 320ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 400ms; } 
