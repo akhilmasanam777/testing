@@ -622,7 +622,7 @@ function FormBuilder({
 
   const pgFields = (pgId: string) => fields.filter((f) => f.pg === pgId);
   const selField = fields.find((f) => f.id === selId) ?? null;
-  // console.log("Selected field:", selField);
+  //console.log("Selected field:", selField);
 
   const pgName = (id: string) => pages.find((p) => p.id === id)?.name ?? "";
   const pgIdx = (id: string) => pages.findIndex((p) => p.id === id);
@@ -630,12 +630,21 @@ function FormBuilder({
   const compatibleValueSets = (type: FieldType) =>
     valueSets.filter((set) => !set.source || set.source === "custom" || set.source === type);
 
-  const optionSourceKey = (field: Field) => {
-    const type = optionTypeForControl(fieldControlTypeId(field));
-    const vs = field.vs != null ? String(field.vs) : "";
-    return type && vs ? `${type}:${vs}` : "";
-  };
+  // const optionSourceKey = (field: Field) => {
+  //   const type = optionTypeForControl(fieldControlTypeId(field));
+  //   const vs = field.vs != null ? String(field.vs) : "";
+  //   return type && vs ? `${type}:${vs}` : "";
+  // };
 
+  const optionSourceKey = (field: Field) => {
+  const type = optionTypeForControl(fieldControlTypeId(field));
+  // 🟢 FIX: Prioritize using field.id if it is a real column from the database
+  if (type && field.id > 0) {
+    return `${type}:${field.id}`;
+  }
+  const vs = field.vs != null ? String(field.vs) : "";
+  return type && vs ? `${type}:${vs}` : "";
+};
   const getFieldValueSet = (field: Field) => {
     const vs = field.vs != null ? String(field.vs) : "";
     return valueSets.find((set) => set.id === vs);
@@ -676,12 +685,40 @@ function FormBuilder({
   };
 
   const getCachedOptions = (field: Field) => {
-    const valueSet = getFieldValueSet(field);
-    if (valueSet) return generateValueSetOptions(valueSet);
+  // 1. Check for real database options first
+  const key = optionSourceKey(field);
+  if (key && optionValuesBySource[key] && optionValuesBySource[key].length > 0) {
+    return optionValuesBySource[key];
+  }
 
-    const key = optionSourceKey(field);
-    return key ? optionValuesBySource[key] ?? [] : [];
-  };
+  // 2. Fall back to global mock generation only if no loaded records exist
+  const valueSet = getFieldValueSet(field);
+  if (valueSet) return generateValueSetOptions(valueSet);
+
+  return [];
+};
+
+//   const getCachedOptions = (field: Field) => {
+//   // 1. Look for options fetched from the database first
+//   const key = optionSourceKey(field);
+//   if (key && optionValuesBySource[key] && optionValuesBySource[key].length > 0) {
+//     return optionValuesBySource[key];
+//   }
+
+//   // 2. Fall back to generating options from the value set if no data exists yet
+//   const valueSet = getFieldValueSet(field);
+//   if (valueSet) return generateValueSetOptions(valueSet);
+
+//   return [];
+// };
+
+  // const getCachedOptions = (field: Field) => {
+  //   const valueSet = getFieldValueSet(field);
+  //   if (valueSet) return generateValueSetOptions(valueSet);
+
+  //   const key = optionSourceKey(field);
+  //   return key ? optionValuesBySource[key] ?? [] : [];
+  // };
   const selectedOptionsForField = (field: Field, options = getCachedOptions(field)) => {
     const selectedIds = new Set((field.selectedOptionIds ?? []).map(Number));
     return options.filter((option) => selectedIds.has(option.id));
@@ -754,24 +791,41 @@ function FormBuilder({
                 pg: `p${p}`
               });
             }
-
             const fType = fieldTypeForControl(row.controlTypeId);
-            const assignedVs = 
-              row.controlTypeId === 2 ? "backend_dropdown_values" : 
-              row.controlTypeId === 3 ? "backend_radio_values" : 
-              row.controlTypeId === 9 ? "backend_checkbox_values" : "";
+const assignedVs = 
+  row.controlTypeId === 2 ? `col_${row.id}` : 
+  row.controlTypeId === 3 ? `col_${row.id}` : 
+  row.controlTypeId === 9 ? `col_${row.id}` : "";
 
-            colIdsMap[row.id] = row.id;
+colIdsMap[row.id] = row.id;
 
-            rebuiltFields.push({
-              id: row.id, // sync directly with database column ID
-              t: fType,
-              controlTypeId: row.controlTypeId,
-              l: row.name,
-              r: false,
-              pg: `p${p}`,
-              vs: assignedVs
-            });
+rebuiltFields.push({
+  id: row.id,
+  t: fType,
+  controlTypeId: row.controlTypeId,
+  l: row.name,
+  r: false,
+  pg: `p${p}`,
+  vs: assignedVs
+});
+
+            // const fType = fieldTypeForControl(row.controlTypeId);
+            // const assignedVs = 
+            //   row.controlTypeId === 2 ? "backend_dropdown_values" : 
+            //   row.controlTypeId === 3 ? "backend_radio_values" : 
+            //   row.controlTypeId === 9 ? "backend_checkbox_values" : "";
+
+            // colIdsMap[row.id] = row.id;
+
+            // rebuiltFields.push({
+            //   id: row.id, // sync directly with database column ID
+            //   t: fType,
+            //   controlTypeId: row.controlTypeId,
+            //   l: row.name,
+            //   r: false,
+            //   pg: `p${p}`,
+            //   vs: assignedVs
+            // });
           }
         }
 
@@ -789,34 +843,127 @@ function FormBuilder({
 //   field.selectedOptionIds = selectedIds;
 // }
 
+
+// for (const field of rebuiltFields) {
+//   if (!isOptionField(field)) continue;
+//   try {
+//     const colData = await apiJson(`/api/formbuilder/dynamic-columns?id=${field.id}`);
+//     console.log("RAW colData for", field.id, colData);
+//     const optKey = optionTypeForControl(field.controlTypeId);
+//     const rawOptions =
+//       optKey === "dropdown" ? colData.DropDownValues :
+//       optKey === "radio" ? colData.RadioButtonValues :
+//       optKey === "checkbox" ? colData.CheckBoxValues : [];
+
+//     const normalized = (rawOptions ?? []).map((o, idx) => normalizeSourceOptionValue(o, idx));
+//     const selectedIds = normalized.filter((o) => o.isSelected).map((o) => Number(o.id));
+//     field.selectedOptionIds = selectedIds;
+
+//     const sourceKey = optionSourceKey(field); // SAME function the read-side uses — guaranteed match
+//     setOptionValuesBySource((prev) => ({ ...prev, [sourceKey]: normalized }));
+//     console.log("EDIT-LOAD", field.id, "key=", sourceKey, "selected=", selectedIds, "normalized count=", normalized.length);
+//   } catch (err) {
+//     console.warn("Failed to load saved options for field", field.id, err);
+//   }
+// }
 for (const field of rebuiltFields) {
   if (!isOptionField(field)) continue;
   try {
-    const colData = await apiJson(`/api/formbuilder/dynamic-columns?id=${field.id}`);
     const optKey = optionTypeForControl(field.controlTypeId); // "dropdown" | "radio" | "checkbox"
-    const rawOptions =
-      optKey === "dropdown" ? colData.DropDownValues :
-      optKey === "radio" ? colData.RadioButtonValues :
-      optKey === "checkbox" ? colData.CheckBoxValues : [];
+    if (!optKey) continue;
 
-    const normalized = (rawOptions ?? []).map((o: any, idx: number) =>
-      normalizeSourceOptionValue(o, idx)
+    // Hit the dedicated options endpoint instead of relying on the column-detail response
+    const optionsData = await apiJson(
+      `/api/formbuilder/dynamic-column-options?type=${optKey}&id=${field.id}`
     );
 
-    const selectedIds = normalized
-      .filter((o) => o.isSelected)
-      .map((o) => Number(o.id));
-
+    const normalized = asArray(optionsData).map((o, idx) => normalizeSourceOptionValue(o, idx));
+    const selectedIds = normalized.filter((o) => o.isSelected).map((o) => Number(o.id));
     field.selectedOptionIds = selectedIds;
 
-    // 🟢 Critical: seed optionValuesBySource so the panel renders THIS exact list,
-    // with ids that match what we just put into selectedOptionIds
-    const sourceKey = `${optKey}:${field.vs}`;
+    const sourceKey = optionSourceKey(field);
     setOptionValuesBySource((prev) => ({ ...prev, [sourceKey]: normalized }));
+
+    console.log("EDIT-LOAD", field.id, "key=", sourceKey, "selected=", selectedIds, "count=", normalized.length);
   } catch (err) {
     console.warn("Failed to load saved options for field", field.id, err);
   }
 }
+
+
+// for (const field of rebuiltFields) {
+//   if (!isOptionField(field)) continue;
+//   try {
+//     const colData = await apiJson(`/api/formbuilder/dynamic-columns?id=${field.id}`);
+//     const optKey = optionTypeForControl(field.controlTypeId);
+//     const rawOptions =
+//       optKey === "dropdown" ? colData.DropDownValues :
+//       optKey === "radio" ? colData.RadioButtonValues :
+//       optKey === "checkbox" ? colData.CheckBoxValues : [];
+
+//     const normalized = (rawOptions ?? []).map((o, idx) => normalizeSourceOptionValue(o, idx));
+//     const selectedIds = normalized.filter((o) => o.isSelected).map((o) => Number(o.id));
+//     field.selectedOptionIds = selectedIds;
+
+//     const sourceKey = `${optKey}:${field.vs}`;  // now unique per field since field.vs = col_<id>
+//     setOptionValuesBySource((prev) => ({ ...prev, [sourceKey]: normalized }));
+//   } catch (err) {
+//     console.warn("Failed to load saved options for field", field.id, err);
+//   }
+// }
+// for (const field of rebuiltFields) {
+//   if (!isOptionField(field)) continue;
+//   try {
+//     const colData = await apiJson(`/api/formbuilder/dynamic-columns?id=${field.id}`);
+//     const optKey = optionTypeForControl(field.controlTypeId);
+//     const rawOptions =
+//       optKey === "dropdown" ? colData.DropDownValues :
+//       optKey === "radio" ? colData.RadioButtonValues :
+//       optKey === "checkbox" ? colData.CheckBoxValues : [];
+
+//     const normalized = (rawOptions ?? []).map((o, idx) => normalizeSourceOptionValue(o, idx));
+//     const selectedIds = normalized.filter((o) => o.isSelected).map((o) => Number(o.id));
+//     field.selectedOptionIds = selectedIds;
+//           const sourceKey = optionSourceKey(field); 
+//     // const sourceKey = `${optKey}:${field.vs}`;  
+//     // // now unique per field since field.vs = col_<id>
+//     setOptionValuesBySource((prev) => ({ ...prev, [sourceKey]: normalized }));
+//   } catch (err) {
+//     console.warn("Failed to load saved options for field", field.id, err);
+//   }
+// }
+
+// for (const field of rebuiltFields) {
+//   if (!isOptionField(field)) continue;
+//   try {
+//     const colData = await apiJson(`/api/formbuilder/dynamic-columns?id=${field.id}`);
+//     const optKey = optionTypeForControl(field.controlTypeId); // "dropdown" | "radio" | "checkbox"
+//     const rawOptions =
+//       optKey === "dropdown" ? colData.DropDownValues :
+//       optKey === "radio" ? colData.RadioButtonValues :
+//       optKey === "checkbox" ? colData.CheckBoxValues : [];
+
+//     const normalized = (rawOptions ?? []).map((o: any, idx: number) =>
+//       normalizeSourceOptionValue(o, idx)
+//     );
+
+//     const selectedIds = normalized
+//       .filter((o) => o.isSelected)
+//       .map((o) => Number(o.id));
+
+//     field.selectedOptionIds = selectedIds;
+
+//     // 🟢 Critical: seed optionValuesBySource so the panel renders THIS exact list,
+//     // with ids that match what we just put into selectedOptionIds
+//     // 🟢 FIX: Change the cache key name to use field.id so it is unique to this column
+// const sourceKey = `${optKey}:${field.id}`;
+// setOptionValuesBySource((prev) => ({ ...prev, [sourceKey]: normalized }));
+//     // const sourceKey = `${optKey}:${field.vs}`;
+//     // setOptionValuesBySource((prev) => ({ ...prev, [sourceKey]: normalized }));
+//   } catch (err) {
+//     console.warn("Failed to load saved options for field", field.id, err);
+//   }
+// }
 
         setFields(rebuiltFields);
         setPublishedColumnIds(colIdsMap);
@@ -1079,7 +1226,7 @@ const loadControlTypes = async () => {
  
 
   const publishToBackend = async () => {    
-    // console.log("Publishing with fields =", fields);
+   console.log("Publishing with fields =", fields);
     
     const backendFields = fields.filter((field) => field.t !== "section");
     // console.log("Backend fields to publish =", backendFields);
@@ -1424,11 +1571,17 @@ setPublishedTaskId(null);
   const preciseLabel = matchingControl?.Text || matchingControl?.label || fieldLabel(fieldType);
   const defaultValueSet = compatibleValueSets(fieldType)[0]?.id;
 
-  const assignedVs = 
-    value === 2 ? "backend_dropdown_values" : 
-    value === 3 ? "backend_radio_values" : 
-    value === 9 ? "backend_checkbox_values" : 
-    defaultValueSet || "";
+const assignedVs = 
+  value === 2 ? `col_${id}` : 
+  value === 3 ? `col_${id}` : 
+  value === 9 ? `col_${id}` : 
+  defaultValueSet || "";
+
+  // const assignedVs = 
+  //   value === 2 ? "backend_dropdown_values" : 
+  //   value === 3 ? "backend_radio_values" : 
+  //   value === 9 ? "backend_checkbox_values" : 
+  //   defaultValueSet || "";
 
   const newField: Field = {
     id, // This links the canvas item directly to your DB identity row
@@ -2599,6 +2752,7 @@ const reorderFields = (draggedId: number, targetId: number) => {
                                               <span>{option.name}</span>
                                             </label>
                                           ))}
+                                       
                                           <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 4 }}>{selectedIds.size} selected</div>
                                         </div>
                                       </div>
