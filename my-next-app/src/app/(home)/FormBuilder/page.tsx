@@ -32,6 +32,8 @@ interface Field {
   extGPS?: boolean;
   mapCap?: boolean;
   controlTypeId?: number;
+  loadingFrom?: string; // 👈 Add this line
+  loadingData?: string; // 👈 Add this line
 }
 
 interface Page { id: string; name: string; }
@@ -83,7 +85,6 @@ interface Task {
   taskType: string;
   progress: number;
   locationSelection: boolean;
-  dynamicColumns?: TaskDynamicColumn[];
 }
 
 interface TaskDynamicColumn {
@@ -96,6 +97,8 @@ interface TaskDynamicColumn {
   sectionTitle: string;
   sectionNo: number;
   pageNo: number;
+  loadingFrom?: string; // 👈 Add property
+  loadingData?: string; // 👈 Add property
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -353,6 +356,8 @@ function normalizeTaskDynamicColumn(item: any): TaskDynamicColumn {
     sectionTitle: String(item.SectionTitle ?? item.sectionTitle ?? ""),
     sectionNo: Number(item.SectionNo ?? item.sectionNo ?? 0),
     pageNo: Number(item.PageNo ?? item.pageNo ?? 0),
+    loadingFrom: String(item.LoadingFrom ?? item.loadingFrom ?? "2"), // 👈 Default to custom options ("2")
+    loadingData: String(item.LoadingData ?? item.loadingData ?? "0"),
   };
 }
 
@@ -714,9 +719,8 @@ function FormBuilder({
   const [optionValuesBySource, setOptionValuesBySource] = useState<Record<string, OptionValue[]>>({});
   const [optionLoadingBySource, setOptionLoadingBySource] = useState<Record<string, boolean>>({});
   const [addingVsValue, setAddingVsValue] = useState(false);
+  const [masterDataOptions, setMasterDataOptions] = useState<LookupOption[]>([]);
   const pgRenameRef = useRef<HTMLInputElement>(null);
-  const publishedColumnIdsRef = useRef<PublishedColumnMap>({});
-  const newFieldIdsRef = useRef<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("")
@@ -760,23 +764,12 @@ function FormBuilder({
   //   return type && vs ? `${type}:${vs}` : "";
   // };
 
-//  const optionSourceKey = (field: Field) => {
-//   const type = optionTypeForControl(fieldControlTypeId(field));
-//   if (!type) return "";
-//   // Use field.id as part of key so each field has its own cache
-//   return field.id > 0 ? `${type}:${field.id}` : type;
-// };
-const optionSourceKey = (field: Field) => {
+  const optionSourceKey = (field: Field) => {
   const type = optionTypeForControl(fieldControlTypeId(field));
-  if (!type) return "";
-  
-  // New fields (not yet in DB) share the master list cache
-  if (newFieldIdsRef.current.has(field.id)) return type; // "dropdown", "radio", "checkbox"
-  
-  // Edit-loaded fields get their own per-field cache
-  return field.id > 0 ? `${type}:${field.id}` : type;
+  // Cache options per control type ("dropdown" | "radio" | "checkbox") — every field of a
+  // given type shares the SAME backend list, so the cache key must NOT be per-field.
+  return type ? type : "";
 };
-
   const getFieldValueSet = (field: Field) => {
     const vs = field.vs != null ? String(field.vs) : "";
     return valueSets.find((set) => set.id === vs);
@@ -792,110 +785,30 @@ const optionSourceKey = (field: Field) => {
       dropDownConfigId: 0,
     }));
 
+  const loadSourceOptions = async (field: Field) => {
+    const key = optionSourceKey(field);
+    if (!key) return [];
+    if (optionValuesBySource[key]) return optionValuesBySource[key];
 
-
-    const loadSourceOptions = async (field: Field) => {
-  const key = optionSourceKey(field);
-  if (!key) return [];
-  if (optionValuesBySource[key]) return optionValuesBySource[key];
-
-  const isNewField = newFieldIdsRef.current.has(field.id);
-
-  if (!isNewField && field.id > 0) {
-    // Edit-loaded field — fetch this field's specific options
-    const type = optionTypeForControl(fieldControlTypeId(field));
-    if (type) {
-      setOptionLoadingBySource((prev) => ({ ...prev, [key]: true }));
-      try {
-        const data = await apiJson(`/api/formbuilder/dynamic-column-options?type=${type}&id=${field.id}`);
-        const values = asArray(data).map((item: any, idx: number) => normalizeSourceOptionValue(item, idx));
-        setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
-        return values;
-      } finally {
-        setOptionLoadingBySource((prev) => ({ ...prev, [key]: false }));
-      }
+    const valueSet = getFieldValueSet(field);
+    if (valueSet) {
+      const values = generateValueSetOptions(valueSet);
+      setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
+      return values;
     }
-  }
 
-  // New field — load from master endpoint
-  const endpoint = VALUE_ENDPOINT_BY_FIELD[fieldTypeForControl(fieldControlTypeId(field))];
-  if (!endpoint) return [];
-  setOptionLoadingBySource((prev) => ({ ...prev, [key]: true }));
-  try {
-    const data = await apiJson(endpoint);
-    const values = asArray(data).map((item: any, idx: number) => normalizeSourceOptionValue(item, idx));
-    setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
-    return values;
-  } finally {
-    setOptionLoadingBySource((prev) => ({ ...prev, [key]: false }));
-  }
-};
-
-//     const loadSourceOptions = async (field: Field) => {
-//   const key = optionSourceKey(field);
-//   if (!key) return [];
-//   if (optionValuesBySource[key]) return optionValuesBySource[key];
-
-//   // For fields with a real DB id, fetch their specific options
-//   if (field.id > 0) {
-//     const type = optionTypeForControl(fieldControlTypeId(field));
-//     if (type) {
-//       setOptionLoadingBySource((prev) => ({ ...prev, [key]: true }));
-//       try {
-//         const data = await apiJson(`/api/formbuilder/dynamic-column-options?type=${type}&id=${field.id}`);
-//         const values = asArray(data).map((item: any, idx: number) => normalizeSourceOptionValue(item, idx));
-//         setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
-//         return values;
-//       } finally {
-//         setOptionLoadingBySource((prev) => ({ ...prev, [key]: false }));
-//       }
-//     }
-//   }
-
-//   const valueSet = getFieldValueSet(field);
-//   if (valueSet) {
-//     const values = generateValueSetOptions(valueSet);
-//     setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
-//     return values;
-//   }
-
-//   const endpoint = VALUE_ENDPOINT_BY_FIELD[fieldTypeForControl(fieldControlTypeId(field))];
-//   if (!endpoint) return [];
-//   setOptionLoadingBySource((prev) => ({ ...prev, [key]: true }));
-//   try {
-//     const data = await apiJson(endpoint);
-//     const values = asArray(data).map((item: any, idx: number) => normalizeSourceOptionValue(item, idx));
-//     setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
-//     return values;
-//   } finally {
-//     setOptionLoadingBySource((prev) => ({ ...prev, [key]: false }));
-//   }
-// };
-
-  // const loadSourceOptions = async (field: Field) => {
-  //   const key = optionSourceKey(field);
-  //   if (!key) return [];
-  //   if (optionValuesBySource[key]) return optionValuesBySource[key];
-
-  //   const valueSet = getFieldValueSet(field);
-  //   if (valueSet) {
-  //     const values = generateValueSetOptions(valueSet);
-  //     setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
-  //     return values;
-  //   }
-
-  //   const endpoint = VALUE_ENDPOINT_BY_FIELD[fieldTypeForControl(fieldControlTypeId(field))];
-  //   if (!endpoint) return [];
-  //   setOptionLoadingBySource((prev) => ({ ...prev, [key]: true }));
-  //   try {
-  //     const data = await apiJson(endpoint);
-  //     const values = asArray(data).map((item: any, idx: number) => normalizeSourceOptionValue(item, idx));
-  //     setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
-  //     return values;
-  //   } finally {
-  //     setOptionLoadingBySource((prev) => ({ ...prev, [key]: false }));
-  //   }
-  // };
+    const endpoint = VALUE_ENDPOINT_BY_FIELD[fieldTypeForControl(fieldControlTypeId(field))];
+    if (!endpoint) return [];
+    setOptionLoadingBySource((prev) => ({ ...prev, [key]: true }));
+    try {
+      const data = await apiJson(endpoint);
+      const values = asArray(data).map((item: any, idx: number) => normalizeSourceOptionValue(item, idx));
+      setOptionValuesBySource((prev) => ({ ...prev, [key]: values }));
+      return values;
+    } finally {
+      setOptionLoadingBySource((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
   const getCachedOptions = (field: Field) => {
     // Shared backend list (dropdown/radio/checkbox master values) is the single source
@@ -974,7 +887,6 @@ const optionSourceKey = (field: Field) => {
 
     if (!seed.taskId) {
       // Clean canvas for a brand new task
-      newFieldIdsRef.current = new Set(); 
       setFormName(seed.formName || "Survey Form");
       setMarkerPath("0");
       setUom("0");
@@ -992,10 +904,11 @@ const optionSourceKey = (field: Field) => {
 
     // Load an existing task structure for editing
     async function loadTaskIntoBuilder() {
-           newFieldIdsRef.current = new Set();
+
       try {
         setDraftStatus("Loading task fields...");
         const data = await apiJson(`/api/formbuilder/tasks?id=${seed?.taskId}`);
+        console.log("RAW GET /tasks?id= response:", JSON.stringify(data, null, 2));
         
         if (data.Name) setFormName(data.Name);
         if (data.MarkerPath) setMarkerPath(data.MarkerPath);
@@ -1053,7 +966,11 @@ const optionSourceKey = (field: Field) => {
               l: row.name,
               r: false,
               pg: `p${p}`,
-              vs: assignedVs
+              vs: assignedVs,
+              loadingFrom: row.loadingFrom || "2", // 👈 Load saved runtime configurations
+             loadingData: row.loadingData || "0"  // 👈 Load map reference target
+              
+
             });
           }
         }
@@ -1083,9 +1000,8 @@ const optionSourceKey = (field: Field) => {
         }
 
         setFields(rebuiltFields);
-       setPublishedColumnIds(colIdsMap);
-publishedColumnIdsRef.current = colIdsMap;
-setDraftStatus("Task loaded completely");
+        setPublishedColumnIds(colIdsMap);
+        setDraftStatus("Task loaded completely");
       } catch (err) {
         console.error("Failed to parse edit seed task layout", err);
         setPublishStatus("Error loading task fields.");
@@ -1132,10 +1048,6 @@ useEffect(() => {
   useEffect(() => {
   loadControlTypes();
 }, []);
-
-useEffect(() => {
-  publishedColumnIdsRef.current = publishedColumnIds;
-}, [publishedColumnIds]);
 
 const loadControlTypes = async () => {
   try {
@@ -1224,66 +1136,168 @@ const loadControlTypes = async () => {
       name: String(item.Name ?? item.name ?? ""),
     }));
   };
-
   useEffect(() => {
-    let cancelled = false;
+  let cancelled = false;
 
-    async function loadBuilderDefaults() {
-      try {
-        const [dropdownValues, radioValues, checkboxValues, uomData, taskTypeData] = await Promise.allSettled([
-          loadSimpleValues("/api/dynamicvalues"),
-          loadSimpleValues("/api/radiobuttonvalues"),
-          loadSimpleValues("/api/checkboxvalues"),
-          apiJson("/api/formbuilder/lookups?type=uom"),
-          apiJson("/api/formbuilder/lookups?type=task-type"),
-        ]);
+  async function loadBuilderDefaults() {
+    try {
+      const [dropdownValues, radioValues, checkboxValues, uomData, taskTypeData, masterDataLookup] = await Promise.allSettled([
+        loadSimpleValues("/api/dynamicvalues"),
+        loadSimpleValues("/api/radiobuttonvalues"),
+        loadSimpleValues("/api/checkboxvalues"),
+        apiJson("/api/formbuilder/lookups?type=uom"),
+        apiJson("/api/formbuilder/lookups?type=task-type"),
+        apiJson("/api/formbuilder/lookups?type=master-data"),
+      ]);
 
-        if (cancelled) return;
+      if (cancelled) return;
 
-        const backendSets: ValueSet[] = [
-          {
-            id: "backend_dropdown_values",
-            n: "Dropdown Values",
-            source: "dropdown",
-            locked: true,
-            v: dropdownValues.status === "fulfilled" ? dropdownValues.value.map((item) => item.name).filter(Boolean) : [],
-          },
-          {
-            id: "backend_radio_values",
-            n: "Radio Button Values",
-            source: "radio",
-            locked: true,
-            v: radioValues.status === "fulfilled" ? radioValues.value.map((item) => item.name).filter(Boolean) : [],
-          },
-          {
-            id: "backend_checkbox_values",
-            n: "Checkbox Values",
-            source: "checkbox",
-            locked: true,
-            v: checkboxValues.status === "fulfilled" ? checkboxValues.value.map((item) => item.name).filter(Boolean) : [],
-          },
-        ];
+      // 🟢 Restored authentic ValueSet definitions mapping layer
+      const backendSets: ValueSet[] = [
+        {
+          id: "backend_dropdown_values",
+          n: "Dropdown Values",
+          source: "dropdown",
+          locked: true,
+          v: dropdownValues.status === "fulfilled" ? dropdownValues.value.map((item) => item.name).filter(Boolean) : [],
+        },
+        {
+          id: "backend_radio_values",
+          n: "Radio Button Values",
+          source: "radio",
+          locked: true,
+          v: radioValues.status === "fulfilled" ? radioValues.value.map((item) => item.name).filter(Boolean) : [],
+        },
+        {
+          id: "backend_checkbox_values",
+          n: "Checkbox Values",
+          source: "checkbox",
+          locked: true,
+          v: checkboxValues.status === "fulfilled" ? checkboxValues.value.map((item) => item.name).filter(Boolean) : [],
+        },
+      ];
 
-        setValueSets((prev) => {
-          const customSets = prev.filter((set) => !set.locked && !String(set.id).startsWith("backend_"));
-          const merged = [...backendSets, ...customSets];
-          if (!selVS && merged.length) setSelVS(merged[0].id);
-          return merged;
-        });
-        if (uomData.status === "fulfilled") setUomOptions(toLookupOptions(uomData.value, DEFAULT_UOM_OPTIONS));
-        if (taskTypeData.status === "fulfilled") setTaskTypeOptions(toLookupOptions(taskTypeData.value, DEFAULT_TASK_TYPE_OPTIONS));
-        setBackendValuesLoaded(true);
-      } catch (err) {
-        if (!cancelled) setPublishStatus(err instanceof Error ? err.message : "Failed to load predefined values");
+      setValueSets((prev) => {
+        const customSets = prev.filter((set) => !set.locked && !String(set.id).startsWith("backend_"));
+        const merged = [...backendSets, ...customSets];
+        if (!selVS && merged.length) setSelVS(merged[0].id);
+        return merged;
+      });
+
+      if (uomData.status === "fulfilled") setUomOptions(toLookupOptions(uomData.value, DEFAULT_UOM_OPTIONS));
+      if (taskTypeData.status === "fulfilled") setTaskTypeOptions(toLookupOptions(taskTypeData.value, DEFAULT_TASK_TYPE_OPTIONS));
+      
+      // 🟢 Save the fulfilled master lookup data to state here
+      if (masterDataLookup && masterDataLookup.status === "fulfilled") {
+        setMasterDataOptions(toLookupOptions(masterDataLookup.value));
       }
+
+      setBackendValuesLoaded(true);
+    } catch (err) {
+      if (!cancelled) setPublishStatus(err instanceof Error ? err.message : "Failed to load predefined values");
     }
+  }
 
-    loadBuilderDefaults();
+  loadBuilderDefaults();
+  return () => { cancelled = true; };
+}, []);
+//   useEffect(() => {
+//   let cancelled = false;
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+//   async function loadBuilderDefaults() {
+//     try {
+//       // 🟢 Add 'masterDataLookup' as the 6th element on the left side of the assignment
+//       const [dropdownValues, radioValues, checkboxValues, uomData, taskTypeData, masterDataLookup] = await Promise.allSettled([
+//         loadSimpleValues("/api/dynamicvalues"),
+//         loadSimpleValues("/api/radiobuttonvalues"),
+//         loadSimpleValues("/api/checkboxvalues"),
+//         apiJson("/api/formbuilder/lookups?type=uom"),
+//         apiJson("/api/formbuilder/lookups?type=task-type"),
+//         apiJson("/api/formbuilder/lookups?type=master-data"),
+//       ]);
+
+//       if (cancelled) return;
+
+//       // ... keep existing backendSets logic here ...
+
+//       if (uomData.status === "fulfilled") setUomOptions(toLookupOptions(uomData.value, DEFAULT_UOM_OPTIONS));
+//       if (taskTypeData.status === "fulfilled") setTaskTypeOptions(toLookupOptions(taskTypeData.value, DEFAULT_TASK_TYPE_OPTIONS));
+      
+//       // 🟢 Save the fulfilled master lookup data to state here
+//       if (masterDataLookup && masterDataLookup.status === "fulfilled") {
+//         setMasterDataOptions(toLookupOptions(masterDataLookup.value));
+//       }
+
+//       setBackendValuesLoaded(true);
+//     } catch (err) {
+//       if (!cancelled) setPublishStatus(err instanceof Error ? err.message : "Failed to load predefined values");
+//     }
+//   }
+
+//   loadBuilderDefaults();
+//   return () => { cancelled = true; };
+// }, []);
+
+  // useEffect(() => {
+  //   let cancelled = false;
+
+  //   async function loadBuilderDefaults() {
+  //     try {
+  //       const [dropdownValues, radioValues, checkboxValues, uomData, taskTypeData] = await Promise.allSettled([
+  //         loadSimpleValues("/api/dynamicvalues"),
+  //         loadSimpleValues("/api/radiobuttonvalues"),
+  //         loadSimpleValues("/api/checkboxvalues"),
+  //         apiJson("/api/formbuilder/lookups?type=uom"),
+  //         apiJson("/api/formbuilder/lookups?type=task-type"),
+  //         apiJson("/api/formbuilder/lookups?type=master-data"),
+  //       ]);
+
+  //       if (cancelled) return;
+
+  //       const backendSets: ValueSet[] = [
+  //         {
+  //           id: "backend_dropdown_values",
+  //           n: "Dropdown Values",
+  //           source: "dropdown",
+  //           locked: true,
+  //           v: dropdownValues.status === "fulfilled" ? dropdownValues.value.map((item) => item.name).filter(Boolean) : [],
+  //         },
+  //         {
+  //           id: "backend_radio_values",
+  //           n: "Radio Button Values",
+  //           source: "radio",
+  //           locked: true,
+  //           v: radioValues.status === "fulfilled" ? radioValues.value.map((item) => item.name).filter(Boolean) : [],
+  //         },
+  //         {
+  //           id: "backend_checkbox_values",
+  //           n: "Checkbox Values",
+  //           source: "checkbox",
+  //           locked: true,
+  //           v: checkboxValues.status === "fulfilled" ? checkboxValues.value.map((item) => item.name).filter(Boolean) : [],
+  //         },
+  //       ];
+
+  //       setValueSets((prev) => {
+  //         const customSets = prev.filter((set) => !set.locked && !String(set.id).startsWith("backend_"));
+  //         const merged = [...backendSets, ...customSets];
+  //         if (!selVS && merged.length) setSelVS(merged[0].id);
+  //         return merged;
+  //       });
+  //       if (uomData.status === "fulfilled") setUomOptions(toLookupOptions(uomData.value, DEFAULT_UOM_OPTIONS));
+  //       if (taskTypeData.status === "fulfilled") setTaskTypeOptions(toLookupOptions(taskTypeData.value, DEFAULT_TASK_TYPE_OPTIONS));
+  //       setBackendValuesLoaded(true);
+  //     } catch (err) {
+  //       if (!cancelled) setPublishStatus(err instanceof Error ? err.message : "Failed to load predefined values");
+  //     }
+  //   }
+
+  //   loadBuilderDefaults();
+
+  //   return () => {
+  //     cancelled = true;
+  //   };
+  // }, []);
 
   const ensureValueIds = async (type: FieldType, values: string[]): Promise<Map<string, number>> => {
     const endpoint = VALUE_ENDPOINT_BY_FIELD[type];
@@ -1310,17 +1324,57 @@ const loadControlTypes = async () => {
     return ids;
   };
 
-  const resolveSavedColumnId = async (field: Field, response: any) => {
+  // const resolveSavedColumnId = async (field: Field, response: any) => {
+  //   const responseId = getApiId(response);
+  //   if (responseId) return responseId;
+
+  //   const rows: DynamicColumn[] = asArray(await apiJson("/api/formbuilder/dynamic-columns")).map(normalizeDynamicColumn);
+  //   const match = rows
+  //     .filter((row) => row.name === field.l)
+  //     .sort((a, b) => b.id - a.id)[0];
+
+  //   return match?.id || 0;
+  // };
+
+  // const resolveSavedColumnId = async (field: Field, response: any) => {
+  //   const responseId = getApiId(response);
+  //   if (responseId) return responseId;
+
+  //   // Backend returned id:0 — fetch the full list and match by name + controlTypeId
+  //   const rows: DynamicColumn[] = asArray(await apiJson("/api/formbuilder/dynamic-columns")).map(normalizeDynamicColumn);
+  //   const controlTypeId = fieldControlTypeId(field);
+  //   const match = rows
+  //     .filter((row) => row.name === field.l.trim() && row.controlTypeId === controlTypeId)
+  //     .sort((a, b) => b.id - a.id)[0]; // take the most recently created one
+
+  //   console.log("resolveSavedColumnId: name=", field.l, "controlTypeId=", controlTypeId, "matched=", match?.id);
+  //   return match?.id || 0;
+  // };
+
+
+const resolveSavedColumnId = async (field: Field, response: any) => {
     const responseId = getApiId(response);
     if (responseId) return responseId;
 
-    const rows: DynamicColumn[] = asArray(await apiJson("/api/formbuilder/dynamic-columns")).map(normalizeDynamicColumn);
-    const match = rows
-      .filter((row) => row.name === field.l)
-      .sort((a, b) => b.id - a.id)[0];
+    // If field already had a backend ID (edit mode), reuse it
+    const existingId = publishedColumnIds[field.id];
+    if (existingId) return existingId;
 
-    return match?.id || 0;
+    // Last resort: fetch list and match — wrapped so a 500 doesn't kill the publish
+    try {
+      const rows: DynamicColumn[] = asArray(await apiJson("/api/formbuilder/dynamic-columns")).map(normalizeDynamicColumn);
+      const controlTypeId = fieldControlTypeId(field);
+      const match = rows
+        .filter((row) => row.name === field.l.trim() && row.controlTypeId === controlTypeId)
+        .sort((a, b) => b.id - a.id)[0];
+      console.log("resolveSavedColumnId: name=", field.l, "matched=", match?.id);
+      return match?.id || 0;
+    } catch (err) {
+      console.warn("resolveSavedColumnId: GET list failed", err);
+      return 0;
+    }
   };
+
 
   const resolveSavedTaskId = async (response: any) => {
     const responseId = getApiId(response);
@@ -1390,29 +1444,52 @@ const loadControlTypes = async () => {
         setPublishStatus("Every field needs a label before publishing.");
         return;
       }
+
+
+
       if (isOptionField(field)) {
-        const sourceOptions = await loadSourceOptions(field);
-// Create a quick lookup set for selected IDs
-const selectedIds = new Set((field.selectedOptionIds ?? []).map(Number));
- 
-  const selectedOptions = selectedOptionsForField(field, sourceOptions);
+    const controlTypeId = Number(field.controlTypeId ?? FIELD_CONTROL_TYPE[field.t] ?? 1);
 
-  if (selectedOptions.length === 0) {
-    setPublishStatus(`${field.l} needs at least one selected option value.`);
-    return;
-  }
-}
-      // if (isOptionField(field)) {
-      //   const sourceOptions = await loadSourceOptions(field);
-      //   const selectedOptions = selectedOptionsForField(field, sourceOptions);
-      //   const fallbackSet = valueSets.find((set) => set.id === field.vs);
+    // If it's a Dropdown set to Master Data, validate the source selection instead of custom items
+    if (controlTypeId === 2 && String(field.loadingFrom) === "1") {
+      if (!field.loadingData || field.loadingData === "0") {
+        setPublishStatus(`"${field.l}" requires a valid Master Data Source selection.`);
+        return;
+      }
+    } else {
+      // Standard validation for normal fields (Custom Dropdowns, Radios, Checkboxes)
+      const sourceOptions = await loadSourceOptions(field);
+      const selectedOptions = selectedOptionsForField(field, sourceOptions);
 
-      //   if (selectedOptions.length === 0 && (!fallbackSet || fallbackSet.v.length === 0)) {
-      //     setPublishStatus(`${field.l} needs at least one selected option value.`);
-      //     return;
-      //   }
-      // }
+      if (selectedOptions.length === 0) {
+        setPublishStatus(`"${field.l}" requires at least one checked/selected value before publishing.`);
+        return;
+      }
     }
+  }
+    }
+  
+//   // 2. Standard validation check for regular custom value lists (Dropdowns, Radios, Checkboxes)
+//   const sourceOptions = await loadSourceOptions(field);
+//   const selectedOptions = selectedOptionsForField(field, sourceOptions);
+
+//   if (selectedOptions.length === 0) {
+//     setPublishStatus(`"${field.l}" requires at least one checked/selected value before publishing.`);
+//     return;
+//   }
+// }
+
+    //   if (isOptionField(field)) {
+    //     const sourceOptions = await loadSourceOptions(field);
+    //     const selectedOptions = selectedOptionsForField(field, sourceOptions);
+    //     const fallbackSet = valueSets.find((set) => set.id === field.vs);
+
+    //     if (selectedOptions.length === 0 && (!fallbackSet || fallbackSet.v.length === 0)) {
+    //       setPublishStatus(`${field.l} needs at least one selected option value.`);
+    //       return;
+    //     }
+    //   }
+    // }
 
     setPublishing(true);
     setPublishStatus("Publishing value sets...");
@@ -1443,52 +1520,41 @@ const selectedIds = new Set((field.selectedOptionIds ?? []).map(Number));
         const optionIds = field.vs ? valueIdsBySet.get(`${optionType}:${field.vs}`) : null;
         
         // Safely pull original tracking IDs from the component state map
-        // const existingColumnId = publishedColumnIds[field.id] || 0;
-  //       const existingColumnId = publishedColumnIdsRef.current[field.id] || 0;
-
-  //       const sourceOptions = await loadSourceOptions(field);
-  //       const selectedSourceOptions = selectedOptionsForField(field, sourceOptions);
+        const existingColumnId = publishedColumnIds[field.id] || 0;
         
-  //       const optionPayload = sourceOptions.length > 0
-  // ? sourceOptions.map((option, index) => ({
-  //     Id: option.id,
-  //     ColumnId: existingColumnId,
-  //     DropDownConfigId: option.dropDownConfigId,
-  //     Position: option.position || index + 1,
-  //     IsSelected: selectedIds.has(Number(option.id)), // <-- Dynamically set true/false
-  //   }))
-  // : selectedSet?.v.map((value, index) => ({
-  //     Id: optionIds?.get(value.trim().toLowerCase()) || 0,
-  //     ColumnId: existingColumnId,
-  //     DropDownConfigId: 0,
-  //     Position: index + 1,
-  //     IsSelected: true,
-  //   })) ?? [];
-        
-        const existingColumnId = publishedColumnIdsRef.current[field.id] || 0;
-
         const sourceOptions = await loadSourceOptions(field);
-        
-        // 1. ADD THIS LINE explicitly right above optionPayload:
-        const selectedIds = new Set((field.selectedOptionIds ?? []).map(Number));
+        const selectedSourceOptions = selectedOptionsForField(field, sourceOptions);
 
-        // 2. ADD EXPLICIT TYPES (option: OptionValue, index: number) in the maps:
-        const optionPayload = sourceOptions.length > 0
-          ? sourceOptions.map((option: OptionValue, index: number) => ({ 
-            Id: option.id,
-            ColumnId: existingColumnId,
-            DropDownConfigId: option.dropDownConfigId,
-            Position: option.position || index + 1,
-            IsSelected: selectedIds.has(Number(option.id)),
-          }))
-          : selectedSet?.v.map((value: string, index: number) => ({
-            Id: optionIds?.get(value.trim().toLowerCase()) || 0,
-            ColumnId: existingColumnId,
-            DropDownConfigId: 0,
-            Position: index + 1,
-            IsSelected: true,
-          })) ?? [];
-        
+        // 1. Determine the correct key based on control type
+const configKey = 
+  field.controlTypeId === 9 ? "CheckBoxConfigId" :
+  field.controlTypeId === 3 ? "RadioButtonConfigId" : 
+  "DropDownConfigId";
+
+// 2. CREATE the selectedIds Set for the current field so TypeScript knows what it is!
+const selectedIds = new Set((field.selectedOptionIds ?? []).map(Number));
+
+// 3. Map ALL source options (not just selected ones) so the backend knows what to deselect
+const optionPayload = sourceOptions.length > 0
+  ? sourceOptions.map((option: any, index: number) => ({
+      Id: option.id,
+      Name: option.name, 
+      IsActive: true,    // CRITICAL: Tells backend the record is active
+      ColumnId: existingColumnId,
+      [configKey]: option.dropDownConfigId, // ✅ DYNAMIC KEY
+      Position: option.position || index + 1,
+      IsSelected: selectedIds.has(Number(option.id)), // ✅ Now works perfectly
+    }))
+  : selectedSet?.v.map((value: string, index: number) => ({
+      Id: optionIds?.get(value.trim().toLowerCase()) || 0,
+      Name: value,
+      IsActive: true,
+      ColumnId: existingColumnId,
+      [configKey]: 0,
+      Position: index + 1,
+      IsSelected: true,
+    })) ?? [];
+      
         // const optionPayload = selectedSourceOptions.length > 0
         //   ? selectedSourceOptions.map((option, index) => ({
         //     Id: option.id,
@@ -1505,35 +1571,40 @@ const selectedIds = new Set((field.selectedOptionIds ?? []).map(Number));
         //     IsSelected: true,
         //   })) ?? [];
 
-        const columnPayload = {
-          Id: existingColumnId,
-          Name: field.l.trim(),
-          ControlTypeId: controlTypeId,
-          LoadingFrom: controlTypeId === 2 ? "2" : "0",
-          LoadingData: "0",
-          LoadingOCR: false,
-          LoadingPrintText: false,
-          RCM: field.r ? 2 : 0,
-          DropDownValues: controlTypeId === 2 ? optionPayload : [],
-          RadioButtonValues: controlTypeId === 3 ? optionPayload : [],
-          CheckBoxValues: controlTypeId === 9 ? optionPayload : [],
-        };
-
+       const columnPayload = {
+  Id: existingColumnId,
+  Name: field.l.trim(),
+  ControlTypeId: controlTypeId,
+  LoadingOCR: false,
+  LoadingPrintText: false,
+  RCM: field.r ? 2 : 0,
+  LoadingFrom: controlTypeId === 2 ? String(field.loadingFrom || "2") : "0",
+  LoadingData: controlTypeId === 2 ? String(field.loadingData || "0") : "0",
+  DropDownValues: controlTypeId === 2 && String(field.loadingFrom) !== "1" ? optionPayload : [],
+  RadioButtonValues: controlTypeId === 3 ? optionPayload : [],
+  CheckBoxValues: controlTypeId === 9 ? optionPayload : [],
+};
+console.log("About to POST column:", field.l);
         const saved = await apiJson("/api/formbuilder/dynamic-columns", {
           method: "POST",
           body: JSON.stringify(columnPayload),
         });
+        console.log("POST response:", saved);
         const savedId = await resolveSavedColumnId(field, saved);
-        if (!savedId) throw new Error(`Backend did not return an id for ${field.l}`);
-        nextColumnIds[field.id] = savedId;
-        updateField(field.id, { id: savedId });
+        console.log("savedId for", field.l, "=", savedId, "| raw saved =", JSON.stringify(saved));
+        // if (!savedId) throw new Error(`Backend did not return an id for ${field.l}`);
+        // nextColumnIds[field.id] = savedId;
+        // updateField(field.id, { id: savedId });
+        if (!savedId) {
+  console.warn(`Could not resolve saved ID for ${field.l} — skipping`);
+}
+nextColumnIds[field.id] = savedId || field.id;
+if (savedId) updateField(field.id, { id: savedId });
       }
 
       // Delete any previously published backend columns that are no longer on the layout canvas
       try {
-        // const originalIds = Object.values(publishedColumnIds || {});
-
-        const originalIds = Object.values(publishedColumnIdsRef.current || {});
+        const originalIds = Object.values(publishedColumnIds || {});
         const keptIds = Object.values(nextColumnIds || {});
         const toDelete = originalIds.filter((id) => id && !keptIds.includes(id));
         
@@ -1547,110 +1618,96 @@ const selectedIds = new Set((field.selectedOptionIds ?? []).map(Number));
       } catch (err) {
         console.warn("Error while deleting stale columns", err);
       }
-      // REPLACE this block (after saving dynamic columns):
-setPublishStatus("Creating task view...");
-const taskForm = await apiJson(`/api/formbuilder/tasks?id=${publishedTaskId ?? 0}`);
-const backendTaskRows: TaskDynamicColumn[] = asArray(taskForm?.DynamicColumns ?? taskForm?.dynamicColumns).map(normalizeTaskDynamicColumn);
-const taskRowsById = new Map<number, TaskDynamicColumn>(backendTaskRows.map((row) => [row.id, row]));
-const firstGlobalFieldId = backendFields.find((field) => {
-  const controlTypeId = fieldControlTypeId(field);
-  return ![5, 8].includes(controlTypeId);
-})?.id;
-
-const taskPayload = {
-  Id: publishedTaskId ?? 0,
-  Name: formName.trim(),
-  MarkerPath: markerPath || "0",
-  UOM: uom,
-  TaskType: taskType,
-  Progress: progress,
-  LocationSelection: locationSelection || backendFields.some((field) => field.t === "location"),
-  DynamicColumns: backendFields.map((field, index) => {
-    const columnId = nextColumnIds[field.id];
-    const existingTaskRow = taskRowsById.get(columnId);
-    const pageIndex = pgIdx(field.pg);
-
-    let calculatedSectionNo = 0;
-    const pageFieldsList = fields.filter((f) => f.pg === field.pg);
-    const currentFieldGlobalIdx = pageFieldsList.findIndex((f) => f.id === field.id);
-    const sectionsBefore = pageFieldsList
-      .slice(0, currentFieldGlobalIdx + 1)
-      .filter((f) => f.t === "section").length;
-    calculatedSectionNo = sectionsBefore === 0 ? 1 : sectionsBefore;
-
-
-    
-
-    return {
-      Position: index,
-      Id: columnId,
-      TaskAttributeId: existingTaskRow?.taskAttributeId ?? null,
-      TaskSelected: true,
-      GlobalName: field.id === firstGlobalFieldId,
-      SectionTitle: sectionForField(field),
-      SectionNo: calculatedSectionNo,
-      PageNo: Math.max(pageIndex + 1, 1),
-    };
-  }),
-};
 
       // setPublishStatus("Creating task view...");
+      // console.log("publishedTaskId =", publishedTaskId);
       // const taskForm = await apiJson(`/api/formbuilder/tasks?id=${publishedTaskId ?? 0}`);
+      // console.log("taskForm =", taskForm);
       // const backendTaskRows: TaskDynamicColumn[] = asArray(taskForm?.DynamicColumns ?? taskForm?.dynamicColumns).map(normalizeTaskDynamicColumn);
-      // const taskRowsById = new Map<number, TaskDynamicColumn>(backendTaskRows.map((row) => [row.id, row]));
-      // const firstGlobalFieldId = backendFields.find((field) => {
-      //   const controlTypeId = fieldControlTypeId(field);
-      //   return ![5, 8].includes(controlTypeId);
-      // })?.id;
+     setPublishStatus("Creating task view...");
+let backendTaskRows: TaskDynamicColumn[] = [];
+if (publishedTaskId) {
+  const taskForm = await apiJson(`/api/formbuilder/tasks?id=${publishedTaskId}`);
+  backendTaskRows = asArray(taskForm?.DynamicColumns ?? taskForm?.dynamicColumns).map(normalizeTaskDynamicColumn);
+}
+     
+      const firstGlobalFieldId = backendFields.find((field) => {
+        const controlTypeId = fieldControlTypeId(field);
+        return ![5, 8].includes(controlTypeId);
+      })?.id;
 
-      // const taskPayload = {
-      //   Id: publishedTaskId ?? 0,
-      //   Name: formName.trim(),
-      //   MarkerPath: markerPath || "0",
-      //   UOM: uom,
-      //   TaskType: taskType,
-      //   Progress: progress,
-      //   LocationSelection: locationSelection || backendFields.some((field) => field.t === "location"),
-      //   DynamicColumns: backendFields.map((field, index) => {
-      //     const columnId = nextColumnIds[field.id];
-      //     const existingTaskRow = taskRowsById.get(columnId);
-      //     const pageIndex = pgIdx(field.pg);
+      const formFieldByColumnId = new Map<number, Field>(
+        backendFields.map((field) => [nextColumnIds[field.id], field]),
+      );
+      const taskRowsById = new Map<number, TaskDynamicColumn>(backendTaskRows.map((row) => [row.id, row]));
+      const orderedRows: TaskDynamicColumn[] = backendFields
+        .map((field) => taskRowsById.get(nextColumnIds[field.id]) ?? {
+          id: nextColumnIds[field.id],
+          name: field.l,
+          controlTypeId: fieldControlTypeId(field),
+          taskAttributeId: null,
+          taskSelected: false,
+          globalName: false,
+          sectionTitle: "",
+          sectionNo: 0,
+          pageNo: 0,
+        })
+        .filter((row) => formFieldByColumnId.has(row.id));
 
-      //     let calculatedSectionNo = 0;
-      //     const pageFieldsList = fields.filter((f) => f.pg === field.pg);
-      //     const currentFieldGlobalIdx = pageFieldsList.findIndex((f) => f.id === field.id);
-      //     const sectionsBefore = pageFieldsList
-      //       .slice(0, currentFieldGlobalIdx + 1)
-      //       .filter((f) => f.t === "section").length;
-      //     calculatedSectionNo = sectionsBefore === 0 ? 1 : sectionsBefore;
+      const taskPayload = {
+        Id: publishedTaskId ?? 0,
+        Name: formName.trim(),
+        MarkerPath: markerPath || "0",
+        UOM: uom,
+        TaskType: taskType,
+        Progress: progress,
+        LocationSelection: locationSelection || backendFields.some((field) => field.t === "location"),
+        DynamicColumns: orderedRows.map((row, index) => {
+          const field = formFieldByColumnId.get(row.id);
+          const pageIndex = field ? pgIdx(field.pg) : 0;
 
-      //     return {
-      //       Position: index,
-      //       Id: columnId,
-      //       TaskAttributeId: existingTaskRow?.taskAttributeId ?? null,
-      //       TaskSelected: true,
-      //       GlobalName: field.id === firstGlobalFieldId,
-      //       SectionTitle: sectionForField(field),
-      //       SectionNo: calculatedSectionNo,
-      //       PageNo: Math.max(pageIndex + 1, 1),
-      //     };
-      //   }),
-      // };
+          // ─── DYNAMIC SECTION NUMBER CALCULATION ───
+          let calculatedSectionNo = 0;
+          if (field) {
+            // Filter fields on the current page that come before or match the current field
+            const pageFieldsList = fields.filter((f) => f.pg === field.pg);
+            const currentFieldGlobalIdx = pageFieldsList.findIndex((f) => f.id === field.id);
 
+            // Count how many "section" types exist before this field on this page
+            const sectionsBefore = pageFieldsList
+              .slice(0, currentFieldGlobalIdx + 1)
+              .filter((f) => f.t === "section").length;
+
+            // Default to section 1 if no section headers have been dragged/added above it yet
+            calculatedSectionNo = sectionsBefore === 0 ? 1 : sectionsBefore;
+          } else {
+            calculatedSectionNo = row.sectionNo;
+          }
+
+          return {
+            Position: index,
+            Id: row.id,
+            TaskAttributeId: row.taskAttributeId,
+            TaskSelected: true,
+            GlobalName: field?.id === firstGlobalFieldId,
+            SectionTitle: field ? sectionForField(field) : row.sectionTitle,
+            SectionNo: calculatedSectionNo, // Now dynamically computed sequential index
+            PageNo: field ? Math.max(pageIndex + 1, 1) : row.pageNo,
+          };
+        }),
+      };
+       console.log("taskPayload =>", JSON.stringify(taskPayload, null, 2));
       const savedTask = await apiJson("/api/formbuilder/tasks", {
         method: "POST",
         body: JSON.stringify(taskPayload),
       });
-      const savedTaskId = await resolveSavedTaskId(savedTask);
-
+   console.log("calling resolveSavedTaskId with:", JSON.stringify(savedTask));
+const savedTaskId = await resolveSavedTaskId(savedTask);
+console.log("savedTaskId =", savedTaskId);
 
       setPublishedColumnIds(nextColumnIds);
-publishedColumnIdsRef.current = nextColumnIds;
-setPublishedTaskId(savedTaskId ?? null);
-persistDraft(nextColumnIds, savedTaskId ?? null);
-      // setPublishedColumnIds(nextColumnIds);
-      // setPublishedTaskId(savedTaskId ?? null);
-      // persistDraft(nextColumnIds, savedTaskId ?? null);
+      setPublishedTaskId(savedTaskId ?? null);
+      persistDraft(nextColumnIds, savedTaskId ?? null);
       setDraftStatus("Draft saved");
       setPublishStatus(`Published ${backendFields.length} fields and created the task view.`);
       // Clear form after successful publish
@@ -1667,7 +1724,6 @@ setPrevPg("p1");
 
 setFields([]);
 setSelId(null);
-newFieldIdsRef.current = new Set();
 
 setPublishedColumnIds({});
 setPublishedTaskId(null);
@@ -1683,9 +1739,10 @@ setPublishedTaskId(null);
   };
 
 
+
+
   const addField = (fieldType: FieldType, value: number, backendId?: number) => {
-  const id = backendId ?? nid();
-  if (!backendId) newFieldIdsRef.current.add(id); // <-- ADD THIS LINE
+  const id = backendId ?? nid(); // Use the actual DB ID if it exists
   
   const matchingControl = controlTypeOptions.find((c) => Number(c.value) === value);
   const preciseLabel = matchingControl?.Text || matchingControl?.label || fieldLabel(fieldType);
@@ -1698,13 +1755,15 @@ setPublishedTaskId(null);
     defaultValueSet || "";
 
   const newField: Field = {
-    id,
+    id, // This links the canvas item directly to your DB identity row
     t: fieldType,
     controlTypeId: value,
     l: `${preciseLabel} Field`, 
     r: false,
     pg: activePg,
     vs: assignedVs,
+    loadingFrom: "2", // 👈 Default configuration to Custom Values
+    loadingData: "0"
   };
 
   setFields((prev) => [...prev, newField]);
@@ -1714,58 +1773,10 @@ setPublishedTaskId(null);
     setSelVS(assignedVs); 
   }
 
-  // REPLACED THE OLD COPY BLOCK WITH THIS CLEAN CALL
   if ([2, 3, 9].includes(value)) {
     loadSourceOptions(newField);
   }
 };
-
-
-//   const addField = (fieldType: FieldType, value: number, backendId?: number) => {
-//   const id = backendId ?? nid(); // Use the actual DB ID if it exists
-  
-//   const matchingControl = controlTypeOptions.find((c) => Number(c.value) === value);
-//   const preciseLabel = matchingControl?.Text || matchingControl?.label || fieldLabel(fieldType);
-//   const defaultValueSet = compatibleValueSets(fieldType)[0]?.id;
-
-//   const assignedVs =
-//   value === 2 ? "backend_dropdown_values" :
-//   value === 3 ? "backend_radio_values" :
-//   value === 9 ? "backend_checkbox_values" :
-//   defaultValueSet || "";
-
-//   const newField: Field = {
-//     id, // This links the canvas item directly to your DB identity row
-//     t: fieldType,
-//     controlTypeId: value,
-//     l: `${preciseLabel} Field`, 
-//     r: false,
-//     pg: activePg,
-//     vs: assignedVs,
-//   };
-
-//   setFields((prev) => [...prev, newField]);
-//   setSelId(id);
-  
-//   if (assignedVs) {
-//     setSelVS(assignedVs); 
-//   }
-
-//   // if ([2, 3, 9].includes(value)) {
-//   //   loadSourceOptions(newField);
-//   // }
-//   if ([2, 3, 9].includes(value)) {
-//   // For new fields, copy the master list into their per-field cache key
-//   const type = optionTypeForControl(value);
-//   const masterKey = type; // "dropdown", "radio", or "checkbox"
-//   const fieldKey = `${type}:${id}`;
-//   if (optionValuesBySource[masterKey]) {
-//     setOptionValuesBySource((prev) => ({ ...prev, [fieldKey]: prev[masterKey] }));
-//   } else {
-//     loadSourceOptions(newField);
-//   }
-// }
-// };
 
 
 useEffect(() => {
@@ -2316,13 +2327,61 @@ const reorderFields = (draggedId: number, targetId: number) => {
                     </select>
                     <div style={{ fontSize: 9, color: "#94a3b8", marginTop: 3 }}>⇄ Moves this field to the selected page</div>
                   </div>
+                  {/* 1. Dropdown Type (2) - Includes "Choose Data From" Dynamic Toggle */}
+{Number(selField.controlTypeId) === 2 && (  
+  <div style={{ marginBottom: 12 }}>
+    
+    {/* Choose Data From Dropdown Toggle */}
+    <div style={{ marginBottom: 12 }}>
+      <label style={S.lbl}>Choose Data From</label>
+      <select 
+        style={S.sel} 
+        value={selField.loadingFrom || "2"} 
+        onChange={(e) => updateField(selField.id, { loadingFrom: e.target.value, loadingData: "0" })}
+      >
+        <option value="1">Master Data</option>
+        <option value="2">Dropdown List</option>
+      </select>
+    </div>
 
-                  {(Number(selField.controlTypeId) === 2 || Number(selField.controlTypeId) === 3 || Number(selField.controlTypeId) === 9) && (
+    {/* Master Data Lookup or Custom Values Editor Toggle */}
+    {selField.loadingFrom === "1" ? (
+      <div style={{ marginBottom: 12 }}>
+        <label style={S.lbl}>Master Data Source</label>
+        <select 
+          style={S.sel} 
+          value={selField.loadingData || "0"} 
+          onChange={(e) => updateField(selField.id, { loadingData: e.target.value })}
+        >
+      
+          {masterDataOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+    ) : (
+      <>
+        {renderFieldValueSetEditor(selField)}
+        {renderFieldOptionsChecklist(selField)}
+      </>
+    )}
+  </div>
+)}
+
+{/* 2. Radio Buttons (3) & Checkboxes (9) - Always Use Standard Custom Values */}
+{(Number(selField.controlTypeId) === 3 || Number(selField.controlTypeId) === 9) && (
+  <div style={{ marginBottom: 12 }}>
+    {renderFieldValueSetEditor(selField)}
+    {renderFieldOptionsChecklist(selField)}
+  </div>
+)}
+
+                  {/* {(Number(selField.controlTypeId) === 2 || Number(selField.controlTypeId) === 3 || Number(selField.controlTypeId) === 9) && (
                     <div style={{ marginBottom: 12 }}>
                       {renderFieldValueSetEditor(selField)}
                       {renderFieldOptionsChecklist(selField)}
                     </div>
-                  )}
+                  )} */}
 
                   <div style={{ fontSize: 10, color: "#718096", marginBottom: 8 }}>Settings</div>
                   <Toggle on={selField.r} onToggle={() => updateField(selField.id, { r: !selField.r })} label="Required" sub="Field must be filled" />
@@ -2685,14 +2744,9 @@ function DynamicColumnsPage() {
 // ─── TASK PAGE ────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 function TaskPage() {
-  const [dynamicColumns] = useState<TaskDynamicColumn[]>([
-    { id: 1, name: "Plot Number", controlTypeId: 1, taskAttributeId: null, taskSelected: true, globalName: false, sectionTitle: "Basic Info", sectionNo: 1, pageNo: 1 },
-    { id: 2, name: "Land Use Type", controlTypeId: 2, taskAttributeId: null, taskSelected: false, globalName: false, sectionTitle: "", sectionNo: 1, pageNo: 1 },
-    { id: 3, name: "Survey Status", controlTypeId: 3, taskAttributeId: null, taskSelected: true, globalName: true, sectionTitle: "Status", sectionNo: 2, pageNo: 2 },
-  ]);
   const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, name: "Field Survey", markerPath: "pin_green", uom: "Unit", taskType: "Survey", progress: 10, locationSelection: true, dynamicColumns: dynamicColumns.map((c) => ({ ...c })) },
-    { id: 2, name: "Infrastructure Inspection", markerPath: "pin_blue", uom: "KM", taskType: "Inspection", progress: 25, locationSelection: false, dynamicColumns: dynamicColumns.map((c) => ({ ...c })) },
+    { id: 1, name: "Field Survey", markerPath: "pin_green", uom: "Unit", taskType: "Survey", progress: 10, locationSelection: true },
+    { id: 2, name: "Infrastructure Inspection", markerPath: "pin_blue", uom: "KM", taskType: "Inspection", progress: 25, locationSelection: false },
   ]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -2703,6 +2757,11 @@ function TaskPage() {
   const [taskType, setTaskType] = useState(TASK_TYPES[0]);
   const [progress, setProgress] = useState(0);
   const [locationSelection, setLocationSelection] = useState(false);
+  const [dynamicColumns] = useState([
+    { id: 1, name: "Plot Number", controlTypeId: 1, taskSelected: true, globalName: false, sectionTitle: "Basic Info", sectionNo: 1, pageNo: 1 },
+    { id: 2, name: "Land Use Type", controlTypeId: 2, taskSelected: false, globalName: false, sectionTitle: "", sectionNo: 1, pageNo: 1 },
+    { id: 3, name: "Survey Status", controlTypeId: 3, taskSelected: true, globalName: true, sectionTitle: "Status", sectionNo: 2, pageNo: 2 },
+  ]);
   const [dcRows, setDcRows] = useState(dynamicColumns.map((c) => ({ ...c })));
 
   const openForm = (id?: number) => {
@@ -2716,7 +2775,6 @@ function TaskPage() {
         setTaskType(task.taskType);
         setProgress(task.progress);
         setLocationSelection(task.locationSelection);
-        setDcRows(task.dynamicColumns ? task.dynamicColumns.map((c) => ({ ...c })) : dynamicColumns.map((c) => ({ ...c })));
       }
     } else {
       setEditId(null);
@@ -2726,8 +2784,8 @@ function TaskPage() {
       setTaskType(TASK_TYPES[0]);
       setProgress(0);
       setLocationSelection(false);
-      setDcRows(dynamicColumns.map((c) => ({ ...c })));
     }
+    setDcRows(dynamicColumns.map((c) => ({ ...c })));
     setModalOpen(true);
   };
 
@@ -2739,9 +2797,9 @@ function TaskPage() {
     if (enabledRows.length > 0 && !hasGlobal) return alert("Please select one Global Name");
 
     if (editId) {
-      setTasks((prev) => prev.map((t) => t.id === editId ? { ...t, name: taskName, markerPath, uom, taskType, progress, locationSelection, dynamicColumns: dcRows.map((r) => ({ ...r })) } : t));
+      setTasks((prev) => prev.map((t) => t.id === editId ? { ...t, name: taskName, markerPath, uom, taskType, progress, locationSelection } : t));
     } else {
-      setTasks((prev) => [...prev, { id: nid(), name: taskName, markerPath, uom, taskType, progress, locationSelection, dynamicColumns: dcRows.map((r) => ({ ...r })) }]);
+      setTasks((prev) => [...prev, { id: nid(), name: taskName, markerPath, uom, taskType, progress, locationSelection }]);
     }
     setModalOpen(false);
   };
